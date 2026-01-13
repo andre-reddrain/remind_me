@@ -4,5 +4,5 @@ data class TodoItem (
     val id: Long = System.currentTimeMillis(),
     val title: String,
     val description: String,
-    val isCompleted: Boolean = false
+    var isCompleted: Boolean = false
 )
