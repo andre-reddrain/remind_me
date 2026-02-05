@@ -12,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
+import android.widget.Toast
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.util.Calendar
 
@@ -55,8 +56,8 @@ class AddTaskBottomSheet(
 
         spinnerDay.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, days)
 
-        var selectedHour = 9
-        var selectedMinute = 0
+        var selectedHour = -1
+        var selectedMinute = -1
 
         switchReminder.setOnCheckedChangeListener { _, isChecked ->
             layoutReminder.visibility = if (isChecked) View.VISIBLE else View.GONE
@@ -73,6 +74,14 @@ class AddTaskBottomSheet(
             }
 
             val reminderEnabled = switchReminder.isChecked
+
+            if (reminderEnabled) {
+                val selectedDayIndex = spinnerDay.selectedItemPosition
+                if (selectedDayIndex < 0 || selectedHour == -1 || selectedMinute == -1) {
+                    Toast.makeText(requireContext(), "Please select a day and time for the reminder", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+            }
 
             val todoItem = if (reminderEnabled) {
                 val selectedDayIndex = spinnerDay.selectedItemPosition

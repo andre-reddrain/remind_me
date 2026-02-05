@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -101,11 +102,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Tests only!
+        /*
         val calendar = Calendar.getInstance().apply {
             add(Calendar.MINUTE, 1)
-        }
+        } */
 
-        /*
         val calendar = Calendar.getInstance().apply {
             set(Calendar.DAY_OF_WEEK, todo.reminderDay!!)
             set(Calendar.HOUR_OF_DAY, todo.reminderHour!!)
@@ -117,7 +118,7 @@ class MainActivity : AppCompatActivity() {
                 add(Calendar.WEEK_OF_YEAR, 1)
             }
         }
-        */
+
         val intent = Intent(this, ReminderReceiver::class.java).apply {
             putExtra("TASK_TITLE", todo.title)
             putExtra("TASK_ID", todo.id)
@@ -137,6 +138,8 @@ class MainActivity : AppCompatActivity() {
             calendar.timeInMillis,
             pendingIntent
         )
+
+        Log.d("ReminderDebug", "Creating reminder for task: ${todo.title} at ${getReminderText(todo)}")
     }
 
     fun cancelReminder(todo: TodoItem) {
@@ -152,6 +155,8 @@ class MainActivity : AppCompatActivity() {
 
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(pendingIntent)
+
+        Log.d("ReminderDebug", "Cancelling reminder for task: ${todo.title} at ${getReminderText(todo)}")
     }
 
     private fun loadTodos() {
@@ -212,5 +217,25 @@ class MainActivity : AppCompatActivity() {
             scheduleReminder(task)
             Toast.makeText(this, "Reminder scheduled!", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // Log Helper function
+    fun getReminderText(todo: TodoItem): String {
+        val dayName = when (todo.reminderDay) {
+            Calendar.SUNDAY -> "Sun"
+            Calendar.MONDAY -> "Mon"
+            Calendar.TUESDAY -> "Tue"
+            Calendar.WEDNESDAY -> "Wed"
+            Calendar.THURSDAY -> "Thu"
+            Calendar.FRIDAY -> "Fri"
+            Calendar.SATURDAY -> "Sat"
+            else -> "Unknown"
+        }
+
+        val hour = todo.reminderHour ?: 0
+        val minute = todo.reminderMinute ?: 0
+        val timeText = String.format("%02d:%02d", hour, minute)
+
+        return "$dayName • $timeText"
     }
 }
