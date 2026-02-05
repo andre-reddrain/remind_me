@@ -1,11 +1,16 @@
 package com.example.remindme
 
 import android.Manifest
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -17,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.util.Calendar
 
 class MainActivity : AppCompatActivity() {
     private val PREFS_NAME = "todo_prefs"
@@ -82,6 +88,72 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun scheduleReminder(todo: TodoItem) {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        // Android 12+ exact alarm permission check
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                startActivity(intent)
+                return
+            }
+        }
+
+        // Tests only!
+        val calendar = Calendar.getInstance().apply {
+            add(Calendar.MINUTE, 1)
+        }
+
+        /*
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_WEEK, todo.reminderDay!!)
+            set(Calendar.HOUR_OF_DAY, todo.reminderHour!!)
+            set(Calendar.MINUTE, todo.reminderMinute!!)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+
+            if (before(Calendar.getInstance())) {
+                add(Calendar.WEEK_OF_YEAR, 1)
+            }
+        }
+        */
+        val intent = Intent(this, ReminderReceiver::class.java).apply {
+            putExtra("TASK_TITLE", todo.title)
+            putExtra("TASK_ID", todo.id)
+        }
+
+        val requestCode = (todo.id % Int.MAX_VALUE).toInt()
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
+        )
+    }
+
+    fun cancelReminder(todo: TodoItem) {
+        val intent = Intent(this, ReminderReceiver::class.java)
+        val requestCode = (todo.id % Int.MAX_VALUE).toInt()
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(pendingIntent)
+    }
+
     private fun loadTodos() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val json = prefs.getString(KEY_TODOS, null)
@@ -96,6 +168,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onDeleteTask(position: Int) {
+        val todo = todoList[position]
+
+        if (todo.isReminder) {
+            cancelReminder(todo)
+        }
+
         todoList.removeAt(position)
         adapter.notifyItemRemoved(position)
         saveTodos()
@@ -108,7 +186,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onToggleTask(position: Int) {
-        todoList[position].isCompleted = !todoList[position].isCompleted
+        val todo = todoList[position]
+        todo.isCompleted = !todo.isCompleted
+
+        if (todo.isReminder) {
+            if (todo.isCompleted) {
+                cancelReminder(todo)
+            } else {
+                scheduleReminder(todo)
+            }
+        }
         recyclerView.post {
             adapter.notifyItemChanged(position)
         }
@@ -120,5 +207,10 @@ class MainActivity : AppCompatActivity() {
         adapter.notifyItemInserted(0)
         recyclerView.smoothScrollToPosition(0)
         saveTodos()
+
+        if (task.isReminder && task.reminderDay != null && task.reminderHour != null && task.reminderMinute != null) {
+            scheduleReminder(task)
+            Toast.makeText(this, "Reminder scheduled!", Toast.LENGTH_SHORT).show()
+        }
     }
 }

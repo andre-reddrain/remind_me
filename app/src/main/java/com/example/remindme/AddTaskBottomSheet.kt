@@ -1,10 +1,6 @@
 package com.example.remindme
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.app.TimePickerDialog
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,9 +11,9 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.Switch
+import android.widget.TextView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import java.util.Calendar
-import java.util.zip.Inflater
 
 class AddTaskBottomSheet(
     private val onTaskAdded: (TodoItem) -> Unit) : BottomSheetDialogFragment() {
@@ -55,6 +51,8 @@ class AddTaskBottomSheet(
 
         val spinnerDay = view.findViewById<Spinner>(R.id.spinnerDay)
         val days = listOf("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
+        val tvSelectedTime = view.findViewById<TextView>(R.id.tvSelectedTime)
+
         spinnerDay.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, days)
 
         var selectedHour = 9
@@ -92,10 +90,6 @@ class AddTaskBottomSheet(
                 TodoItem(title = title, description = description)
             }
 
-            if (todoItem.isReminder) {
-                scheduleReminder(todoItem)
-            }
-
             onTaskAdded(todoItem)
             dismiss()
         }
@@ -104,44 +98,15 @@ class AddTaskBottomSheet(
             TimePickerDialog(requireContext(), { _, hour, minute ->
                 selectedHour = hour
                 selectedMinute = minute
+
+                val formattedTime = String.format("%02d:%02d", hour, minute)
+                tvSelectedTime.text = "Time: $formattedTime"
+
             }, selectedHour, selectedMinute, false).show()
         }
 
         btnCancel.setOnClickListener {
             dismiss()
         }
-    }
-
-    private fun scheduleReminder(todo: TodoItem) {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, todo.reminderDay!!)
-            set(Calendar.HOUR_OF_DAY, todo.reminderHour!!)
-            set(Calendar.MINUTE, todo.reminderMinute!!)
-            set(Calendar.SECOND, 0)
-
-            if (before(Calendar.getInstance())) {
-                add(Calendar.WEEK_OF_YEAR, 1)
-            }
-        }
-
-        val intent = Intent(requireContext(), ReminderReceiver::class.java).apply {
-            putExtra("TASK_TITLE", todo.title)
-            putExtra("TASK_ID", todo.id)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            requireContext(),
-            todo.id,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.setRepeating(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            AlarmManager.INTERVAL_DAY * 7,
-            pendingIntent
-        )
     }
 }
