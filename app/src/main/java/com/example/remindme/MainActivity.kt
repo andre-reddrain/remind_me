@@ -61,6 +61,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Cria um canal para as notificações serem recebidas
+     */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -75,6 +78,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Pede a permissão ao utilizador para a receção de notificações
+     * Necessário para o funcionamento!
+     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -89,6 +96,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Agenda um reminder, dependente da informação do utilizador.
+     * @param todo Reminder a ser agendado
+     */
     private fun scheduleReminder(todo: TodoItem) {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -142,6 +153,10 @@ class MainActivity : AppCompatActivity() {
         Log.d("ReminderDebug", "Creating reminder for task: ${todo.title} at ${getReminderText(todo)}")
     }
 
+    /**
+     * Cancela um reminder. Acontece quando o reminder é apagado ou marcado como concluído.
+     * @param todo Reminder a ser cancelado
+     */
     fun cancelReminder(todo: TodoItem) {
         val intent = Intent(this, ReminderReceiver::class.java)
         val requestCode = (todo.id % Int.MAX_VALUE).toInt()
@@ -159,6 +174,11 @@ class MainActivity : AppCompatActivity() {
         Log.d("ReminderDebug", "Cancelling reminder for task: ${todo.title} at ${getReminderText(todo)}")
     }
 
+    /**
+     * Carrega todas as tarefas e reminders.
+     * As tarefas são carregadas a partir de um ficheiro local do dispositivo:
+     * /data/data/com.example.remindme/shared_prefs/todo_prefs.xml
+     */
     private fun loadTodos() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val json = prefs.getString(KEY_TODOS, null)
@@ -172,6 +192,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Apaga uma tarefa/reminder.
+     */
     private fun onDeleteTask(position: Int) {
         val todo = todoList[position]
 
@@ -184,12 +207,19 @@ class MainActivity : AppCompatActivity() {
         saveTodos()
     }
 
+    /**
+     * Atualiza as tarefas/reminders.
+     */
     private fun saveTodos() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val json = Gson().toJson(todoList)
         prefs.edit().putString(KEY_TODOS, json).apply()
     }
 
+    /**
+     * Coloca a tarefa como concluída, e vice-versa.
+     * @param position Posição da tarefa na lista de tarefas
+     */
     private fun onToggleTask(position: Int) {
         val todo = todoList[position]
         todo.isCompleted = !todo.isCompleted
@@ -207,6 +237,10 @@ class MainActivity : AppCompatActivity() {
         saveTodos()
     }
 
+    /**
+     * Cria uma tarefa.
+     * @param task Tarefa a ser criada
+     */
     private fun addTask(task: TodoItem) {
         todoList.add(0, task)
         adapter.notifyItemInserted(0)
@@ -220,6 +254,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Log Helper function
+    /**
+     * Log Helper Function.
+     * É usada para loggar a data e a hora de um reminder.
+     * @param todo Reminder a ser logado.
+     */
     fun getReminderText(todo: TodoItem): String {
         val dayName = when (todo.reminderDay) {
             Calendar.SUNDAY -> "Sun"

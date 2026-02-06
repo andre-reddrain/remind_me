@@ -12,6 +12,11 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
 class ReminderReceiver: BroadcastReceiver() {
+    /**
+     * Recebe os vários reminders, e dispara-os para o dispositivo.
+     * @param context Contexto para mostrar a mensagem
+     * @param intent Reminder a ser disparado
+     */
     override fun onReceive(context: Context, intent: Intent) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
